@@ -1,8 +1,27 @@
 name: build
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
-jobs:
+jobs:  
+  windows-cross:  
+    runs-on: ubuntu-22.04  
+    strategy:  
+      matrix:  
+        host: [i686-w64-mingw32, x86_64-w64-mingw32]  
+    steps:  
+      - uses: actions/checkout@v6  
+      - name: Build Windows binary  
+        run: |  
+          docker build \  
+            --build-arg HOST=${{ matrix.host }} \  
+            -t aria2-mingw-${{ matrix.host }} - < Dockerfile.mingw  
+          mkdir -p out  
+          docker run --rm -v $PWD/out:/out aria2-mingw-${{ matrix.host }} \  
+            cp /aria2/src/aria2c.exe /out/aria2c-${{ matrix.host }}.exe  
+      - uses: actions/upload-artifact@v4  
+        with:  
+          name: windows-${{ matrix.host }}  
+          path: out/aria2c-${{ matrix.host }}.exe
   build:
     strategy:
       matrix:
